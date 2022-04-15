@@ -51,13 +51,28 @@ class Fisheye:
         # ! Converting polar coordinates to spherical coordinates (without r)
         self.tp = self.rt_img
         if self.p==0: # equidistant
-                self.tp[:, 0] = self.f * self.tp[:, 0]
+                self.tp[:, 0] = self.tp[:, 0] / self.f
         elif self.p==1:  # stereographic
-                self.tp[:, 0] = 2 * self.f * np.tan(self.tp[:, 0] / 2)
+                self.tp[:, 0] = 2 * np.arctan(self.tp[:, 0] / 2 / self.f)
         elif self.p==2:  # orthographic
-                self.tp[:, 0] = self.f * np.sin(self.tp[:, 0])
+                self.tp[:, 0] = np.arcsin(self.tp[:, 0] / self.f)
         elif self.p==3:  # equisolid
-                self.tp[:, 0] = 2 * self.f * np.sin(self.tp[:, 0] / 2)
+                self.tp[:, 0] = 2 * np.arcsin(self.tp[:, 0] / 2 / self.f)
+        else:  # not defined
+                print('Projection "' + self.proj + '" was not defined.')
+                exit(-1)
+
+    def sph2polar(self):
+        # ! Converting polar coordinates to spherical coordinates (without r)
+        self.rt_img = self.tp
+        if self.p==0: # equidistant
+                self.rt_img[:, 0] = self.f * self.rt_img[:, 0]
+        elif self.p==1:  # stereographic
+                self.rt_img[:, 0] = 2 * self.f * np.tan(self.rt_img[:, 0] / 2)
+        elif self.p==2:  # orthographic
+                self.rt_img[:, 0] = self.f * np.sin(self.rt_img[:, 0])
+        elif self.p==3:  # equisolid
+                self.rt_img[:, 0] = 2 * self.f * np.sin(self.rt_img[:, 0] / 2)
         else:  # not defined
                 print('Projection "' + self.proj + '" was not defined.')
                 exit(-1)
@@ -189,39 +204,45 @@ def sph2cart(rtp):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    # mesh on image plane
-    n = 201
+    ###
+    # initialize mesh on image plane and camera setting
+    n = 501
     X = np.linspace(-1 / 2, 1 / 2, n)
     Y = np.linspace(-1 / 2, 1 / 2, n)
     dx = 1 / (n - 1)
     dy = 1 / (n - 1)
-    focal = 1
 
+    fshy = Fisheye(X, Y, 0.5)
+
+    ###
+    # simu data with balls_on_sphere
     sphere = 10
-    fshy = Fisheye(X, Y, focal)
     rtp = np.hstack((np.ones((X.size**2)).reshape(-1, 1)*sphere, fshy.tp))
     xyz = sph2cart(rtp)
-    # generate fake data
-    # balls = np.array([[0, 0, 9, 4.5],
-    #                   [1, 1, 13, 2]])
-    balls = np.array([[1, 1, 9, 3]])
+    # balls = np.array([[1, 1, 9, 3]])
+    balls = np.array([[0, 0, 9, 3.5],
+                      [0, 1, 11.5, 1.5]])
+
     normals = xyz/sphere
     pt = xyz
     pt, normals = balls_on_sphere(pt, normals, balls)
+    true = np.linalg.norm(pt.reshape(n, n, 3), axis=2)  # ground truth
 
-    # solve on image plane
+    ###
+    # 3D reconstruction on image plane
+    # compute right hand side
     grad = fshy.convert_norms(normals)
-
     f = source_term(grad[:, 0].reshape(n, n), grad[:, 1].reshape(n, n), dx, dy)
 
+    # deal with boundary condition
     # todo: solve the displacement caused by boundary condition
     boundary = np.ones((n, n))*np.log(sphere)
     # boundary[1:-1, 1:-1] = 0
 
+    # solution is log(U) rather than U
     lnU = poisson_solver(f, boundary, dx, dy)
     U = np.exp(lnU)
 
-    true = np.linalg.norm(pt.reshape(n, n, 3), axis=2)
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -245,19 +266,30 @@ if __name__ == '__main__':
     # ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([scale_x, scale_y, scale_z, 1]))
     plt.show()
 
-    # fig, ax = plt.subplots()
-    # pc = ax.pcolormesh(X, Y, -U, shading='auto')
-    # ax.axis('equal')
-    # ax.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
-    # fig.colorbar(pc)
-    # plt.show()
+    fig1 = plt.figure()
+    ax = fig1.add_subplot(111, projection='3d')
+    ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2])
+    # xyz scale
+    # scale_x = xyz[:,0].max() - xyz[:,0].min()
+    # scale_y = xyz[:,1].max() - xyz[:,1].min()
+    # scale_z = xyz[:,2].max() - xyz[:,2].min()
+    # ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([scale_x, scale_y, scale_z, 1]))
+    plt.show()
 
-    # fig, ax = plt.subplots()
-    # pc = ax.pcolormesh(X, Y, f, shading='auto')
-    # ax.axis('equal')
-    # ax.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
-    # fig.colorbar(pc)
-    # plt.show()
+    fig, ax = plt.subplots()
+    pc = ax.pcolormesh(X, Y, -U, shading='auto')
+    ax.axis('equal')
+    ax.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
+    fig.colorbar(pc)
+    plt.show()
+
+    fig, ax = plt.subplots()
+    pc = ax.pcolormesh(X, Y, f, shading='auto')
+    ax.axis('equal')
+    ax.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
+    fig.colorbar(pc)
+    plt.show()
+
     gradx = grad[:, 0].reshape(n, n)
     fig1, ax1 = plt.subplots()
     pc1 = plt.pcolormesh(X, Y, gradx, shading='auto')
@@ -276,10 +308,11 @@ if __name__ == '__main__':
 
     Gradx = gradx
     Grady = grady
+    logtrue = np.log(true)
+    Gradx[1:-1, 1:-1] = (logtrue[1:-1, 2:] - logtrue[1:-1, :-2]) / 2 / dx
+    Grady[1:-1, 1:-1] = (logtrue[2:, 1:-1] - logtrue[:-2, 1:-1]) / 2 / dy
 
-    # true = np.log(true)
-    # Gradx[1:-1, 1:-1] = (true[1:-1, 2:] - true[1:-1, :-2])/2/dx
-    # Grady[1:-1, 1:-1] = (true[2:, 1:-1] - true[:-2, 1:-1])/2/dy
+
     #
     # fshy.compare_gradients(np.hstack((Gradx.reshape(-1, 1), Grady.reshape(-1, 1))))
 
@@ -296,18 +329,6 @@ if __name__ == '__main__':
     ax2.axis('equal')
     ax2.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
     fig2.colorbar(pc2)
-    plt.show()
-
-
-
-    fig1 = plt.figure()
-    ax = fig1.add_subplot(111, projection='3d')
-    ax.scatter(xyz[:,0], xyz[:,1], xyz[:,2])
-    # xyz scale
-    # scale_x = xyz[:,0].max() - xyz[:,0].min()
-    # scale_y = xyz[:,1].max() - xyz[:,1].min()
-    # scale_z = xyz[:,2].max() - xyz[:,2].min()
-    # ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([scale_x, scale_y, scale_z, 1]))
     plt.show()
 
     print(U.min())
