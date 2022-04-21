@@ -9,6 +9,7 @@ Date:   04/20/2022
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 import open3d as o3d
 
 from fast_poisson_solver import poisson_solver, source_term
@@ -33,18 +34,18 @@ if __name__ == '__main__':
     rtp = np.hstack((np.ones((X.size**2)).reshape(-1, 1)*sphere, fshy.tp))
     xyz = fshy.sph2cart(rtp)
 
-    balls0 = np.array([[0, 0, 10, 5]])
-    balls = np.array([[0, 0, 10, 5],
-                      [0, 0.8, 14, 1.5],
+    balls0 = np.array([[0, 0, 9, 5]])
+    balls = np.array([[0, 0.8, 13, 1.5],
                       [-1, -1, 13.5, 1],
                       [3, 0, 12.5, 0.8]])
 
     normals = xyz/sphere
     pt = xyz
-    pt0, normals0 = balls_on_sphere(pt, normals, balls0)
-    pt, normals = balls_on_sphere(pt, normals, balls)
-
+    pt, normals0 = balls_on_sphere(pt, normals, balls0)
+    pt0 = pt
     true0 = np.linalg.norm(pt0.reshape(n, n, 3), axis=2)
+
+    pt, normals = balls_on_sphere(pt, normals, balls)
     true = np.linalg.norm(pt.reshape(n, n, 3), axis=2)  # ground truth
 
     ###
@@ -60,11 +61,15 @@ if __name__ == '__main__':
 
     # set up boundary condition
     # todo: solve the displacement caused by boundary condition
-    boundary = np.ones((n, n))*np.log(sphere)
+    boundary = np.ones((n, n))*0
 
     # solution is log(U) rather than U
     dlnU = poisson_solver(df, boundary, dx, dy)
-    U = np.exp(dlnU + np.log(true0))
+
+    boundary = np.ones((n, n)) * np.log(sphere)
+    lnU0 = poisson_solver(f0, boundary, dx, dy)
+    # U = np.exp(dlnU + lnU0)
+    U = np.exp(dlnU) * true0
 
     pc_recon = fshy.sph2cart(np.hstack((U.reshape(-1, 1), fshy.tp)))
     ###
@@ -72,44 +77,36 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     XX, YY = np.meshgrid(X, Y)
-    ax.plot_surface(XX, YY, true, cmap=cm.coolwarm, rcount=201, ccount=201)
-    # xyz scaled
-    scale_x = X.max() - X.min()
-    scale_y = Y.max() - X.min()
-    scale_z = true.max() - true.min()
+    ax.plot_surface(XX, YY, true0, cmap=cm.coolwarm, rcount=201, ccount=201)
+    # # xyz scaled
+    # scale_x = X.max() - X.min()
+    # scale_y = Y.max() - X.min()
+    # scale_z = true0.max() - true0.min()
     # ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([scale_x, scale_y, scale_z, 1]))
+    fig.suptitle('Colormap of distance on image plane', fontsize=15)
     plt.show()
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     XX, YY = np.meshgrid(X, Y)
     ax.plot_surface(XX, YY, U, cmap=cm.coolwarm, rcount=201, ccount=201)
-    # xyz scale
-    scale_x = X.max() - X.min()
-    scale_y = Y.max() - X.min()
-    scale_z = U.max() - U.min()
+    # # xyz scale
+    # scale_x = X.max() - X.min()
+    # scale_y = Y.max() - X.min()
+    # scale_z = U.max() - U.min()
     # ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([scale_x, scale_y, scale_z, 1]))
     plt.show()
-
-    # fig1 = plt.figure()
-    # ax = fig1.add_subplot(111, projection='3d')
-    # ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2])
-    # # xyz scale
-    # # scale_x = xyz[:,0].max() - xyz[:,0].min()
-    # # scale_y = xyz[:,1].max() - xyz[:,1].min()
-    # # scale_z = xyz[:,2].max() - xyz[:,2].min()
-    # # ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([scale_x, scale_y, scale_z, 1]))
-    # plt.show()
 
     fig, ax = plt.subplots()
     pc = ax.pcolormesh(X, Y, U, shading='auto')
     ax.axis('equal')
     ax.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
     fig.colorbar(pc)
+    fig.suptitle('Colormap of distance on image plane', fontsize=15)
     plt.show()
 
     fig, ax = plt.subplots()
-    pc = ax.pcolormesh(X, Y, f, shading='auto')
+    pc = ax.pcolormesh(X, Y, df, shading='auto')
     ax.axis('equal')
     ax.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
     fig.colorbar(pc)
@@ -133,7 +130,7 @@ if __name__ == '__main__':
 
     Gradx = gradx
     Grady = grady
-    logtrue = np.log(true0)
+    logtrue = np.log(true)
     Gradx[1:-1, 1:-1] = (logtrue[1:-1, 2:] - logtrue[1:-1, :-2]) / 2 / dx
     Grady[1:-1, 1:-1] = (logtrue[2:, 1:-1] - logtrue[:-2, 1:-1]) / 2 / dy
 
