@@ -10,7 +10,7 @@ Poisson reconstruction for any curved surfaces and fisheye cameras
 - 
 
 ## To do
-
+- [ ] proper visualization funcs
 - [ ] Reconstruction using difference image
 - [ ] GPU version
 - [ ] User-defined fisheye (or other camera) projection
