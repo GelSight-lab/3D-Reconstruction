@@ -13,20 +13,21 @@ from mpl_toolkits.mplot3d import Axes3D
 import open3d as o3d
 
 from fast_poisson_solver import poisson_solver, source_term
-from data_generator import balls_on_sphere
+from data_generator import place_balls, indent_balls
 from fisheye import Fisheye
+from Visualizer import Visualizer
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     ###
     # initialize mesh on image plane and camera setting
-    n = 251
+    n = 501
     X = np.linspace(-1 / 2, 1 / 2, n)
     Y = np.linspace(-1 / 2, 1 / 2, n)
     dx = 1 / (n - 1)
     dy = 1 / (n - 1)
 
-    fshy = Fisheye(X, Y, .8)
+    fshy = Fisheye(X, Y, 1)
 
     ###
     # simu data with balls_on_sphere
@@ -34,25 +35,29 @@ if __name__ == '__main__':
     rtp = np.hstack((np.ones((X.size**2)).reshape(-1, 1)*sphere, fshy.tp))
     xyz = fshy.sph2cart(rtp)
 
-    balls0 = np.array([[0, 0, 9, 5]])
-    balls = np.array([[0, 0.8, 13, 1.5],
-                      [-1, -1, 13.5, 1],
+    balls0 = np.array([[0, 0, 8, 5]])
+    # balls = np.array([[0, 0.8, 13,1.5],
+    #                   [-1, -1, 13.5, 1],
+    #                   [3, 0, 12.5, 0.8]])
+
+    balls = np.array([[0, 0.8, 13.5, 1.5],
+                      [-1, -1, 13, 1],
                       [3, 0, 12.5, 0.8]])
 
     normals = xyz/sphere
     pt = xyz
-    pt, normals0 = balls_on_sphere(pt, normals, balls0)
-    pt0 = pt
-    true0 = np.linalg.norm(pt0.reshape(n, n, 3), axis=2)
+    pt, normals0 = place_balls(pt, normals, balls0)
+    pt0 = pt.copy()
 
-    pt, normals = balls_on_sphere(pt, normals, balls)
+    pt, normals = indent_balls(pt, normals, balls)
     true = np.linalg.norm(pt.reshape(n, n, 3), axis=2)  # ground truth
 
+    true0 = np.linalg.norm(pt0.reshape(n, n, 3), axis=2)
     ###
     # 3D reconstruction on image plane
     # compute right hand side
     grad0 = fshy.convert_norms(normals0)
-    grad = fshy.convert_norms(normals)
+    grad  = fshy.convert_norms(normals)
 
     f0 = source_term(grad0[:, 0].reshape(n, n), grad0[:, 1].reshape(n, n), dx, dy)
     f = source_term(grad[:, 0].reshape(n, n), grad[:, 1].reshape(n, n), dx, dy)
@@ -70,124 +75,35 @@ if __name__ == '__main__':
     lnU0 = poisson_solver(f0, boundary, dx, dy)
     # U = np.exp(dlnU + lnU0)
     U = np.exp(dlnU) * true0
+    print(U.min())
+    print(U.max())
 
     pc_recon = fshy.sph2cart(np.hstack((U.reshape(-1, 1), fshy.tp)))
     ###
     # plots
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    XX, YY = np.meshgrid(X, Y)
-    ax.plot_surface(XX, YY, true0, cmap=cm.coolwarm, rcount=201, ccount=201)
-    # # xyz scaled
-    # scale_x = X.max() - X.min()
-    # scale_y = Y.max() - X.min()
-    # scale_z = true0.max() - true0.min()
-    # ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([scale_x, scale_y, scale_z, 1]))
-    fig.suptitle('Colormap of distance on image plane', fontsize=15)
-    plt.show()
+    vis = Visualizer(X, Y)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    XX, YY = np.meshgrid(X, Y)
-    ax.plot_surface(XX, YY, U, cmap=cm.coolwarm, rcount=201, ccount=201)
-    # # xyz scale
-    # scale_x = X.max() - X.min()
-    # scale_y = Y.max() - X.min()
-    # scale_z = U.max() - U.min()
-    # ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([scale_x, scale_y, scale_z, 1]))
-    plt.show()
+    vis.plot_geometry(U)
+    vis.plot_geometry(true0, title='initial geometry')
 
-    fig, ax = plt.subplots()
-    pc = ax.pcolormesh(X, Y, U, shading='auto')
-    ax.axis('equal')
-    ax.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
-    fig.colorbar(pc)
-    fig.suptitle('Colormap of distance on image plane', fontsize=15)
-    plt.show()
-
-    fig, ax = plt.subplots()
-    pc = ax.pcolormesh(X, Y, df, shading='auto')
-    ax.axis('equal')
-    ax.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
-    fig.colorbar(pc)
-    plt.show()
+    vis.plot_colormap(U, title='distance')
+    vis.plot_colormap(f0, title='initial source')
 
     gradx = grad[:, 0].reshape(n, n)
-    fig1, ax1 = plt.subplots()
-    pc1 = plt.pcolormesh(X, Y, gradx, shading='auto')
-    ax1.axis('equal')
-    ax1.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
-    fig1.colorbar(pc1)
-    plt.show()
-
     grady = grad[:, 1].reshape(n, n)
-    fig2, ax2 = plt.subplots()
-    pc2 = plt.pcolormesh(X, Y, grady, shading='auto')
-    ax2.axis('equal')
-    ax2.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
-    fig2.colorbar(pc2)
-    plt.show()
+    vis.plot_gradients(gradx, grady, title='ground truth')
 
     Gradx = gradx
     Grady = grady
     logtrue = np.log(true)
     Gradx[1:-1, 1:-1] = (logtrue[1:-1, 2:] - logtrue[1:-1, :-2]) / 2 / dx
     Grady[1:-1, 1:-1] = (logtrue[2:, 1:-1] - logtrue[:-2, 1:-1]) / 2 / dy
+    vis.plot_gradients(Gradx, Grady, title='ground truth')
 
     # fshy.compare_gradients(np.hstack((Gradx.reshape(-1, 1), Grady.reshape(-1, 1))))
 
-    fig1, ax1 = plt.subplots()
-    pc1 = plt.pcolormesh(X, Y, Gradx, shading='auto')
-    ax1.axis('equal')
-    ax1.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
-    fig1.colorbar(pc1)
-    plt.show()
-
-    grady = grad[:, 1].reshape(n, n)
-    fig2, ax2 = plt.subplots()
-    pc2 = plt.pcolormesh(X, Y, Grady, shading='auto')
-    ax2.axis('equal')
-    ax2.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
-    fig2.colorbar(pc2)
-    plt.show()
-
-    print(U.min())
-    print(U.max())
-
     # 3d visualization
     pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(pc_recon)
-    o3d.visualization.draw_geometries([pcd, o3d.geometry.TriangleMesh.create_coordinate_frame(1)])
-
-    # # load data
-    # pcfile = 'data/' + 'points.pkl'
-    # normalfile = 'data/' + 'normals.pkl'
-    # pc = pickle.load(open(pcfile, 'rb'))
-    # normals = pickle.load(open(normalfile, 'rb'))
-    # pc = np.asarray(pc)
-    # normals = np.asarray(normals)
-    #
-    # truthfile = 'data/' + 'points_deformed.pkl'
-    # truth = pickle.load(open(truthfile, 'rb'))
-    # truth = np.asarray(truth)
-    #
-    # pc_recon = poisson_solver(pc, normals)
-    #
-    # pcd1 = o3d.geometry.PointCloud()
-    # pcd1.points = o3d.utility.Vector3dVector(pc_recon)
-    # pcd1.estimate_normals(o3d.geometry.KDTreeSearchParamKNN(10))
-    # pcd1.orient_normals_towards_camera_location()
-    # o3d.visualization.draw_geometries([pcd1, o3d.geometry.TriangleMesh.create_coordinate_frame(1)])
-    #
-    # pcd2 = o3d.geometry.PointCloud()
-    # pcd2.points = o3d.utility.Vector3dVector(truth)
-    # pcd2.estimate_normals(o3d.geometry.KDTreeSearchParamKNN(10))
-    # pcd2.orient_normals_towards_camera_location()
-    # o3d.visualization.draw_geometries([pcd2, o3d.geometry.TriangleMesh.create_coordinate_frame(2)])
-    #
-    # # generate image coordinates based on ground truth
-    # rtp_truth = cart2sph(truth)
-    # imagecoor = sph2fisheye(rtp_truth)
-    #
-    # grad_lnr = pretreat_normals(rtp_truth, normals)
-    # rtp = poisson_solver(rtp_truth, grad_lnr)
+    pcd.points = o3d.utility.Vector3dVector(np.vstack((pt-np.array([6, 1, 0]), pc_recon+np.array([6, 1, 0]))))
+    o3d.visualization.draw_geometries([pcd, o3d.geometry.TriangleMesh.create_coordinate_frame(1)], width=1280,
+                                      height=720)

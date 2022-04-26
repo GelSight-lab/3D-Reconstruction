@@ -5,7 +5,7 @@ from matplotlib import cm
 import open3d as o3d
 
 from fast_poisson_solver import poisson_solver, source_term
-from data_generator import balls_on_sphere
+from data_generator import place_balls
 from fisheye import Fisheye
 
 # Press the green button in the gutter to run the script.
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     normals = xyz/sphere
     pt = xyz
-    pt, normals = balls_on_sphere(pt, normals, balls)
+    pt, normals = place_balls(pt, normals, balls)
     true = np.linalg.norm(pt.reshape(n, n, 3), axis=2)  # ground truth
 
     ###
@@ -147,35 +147,3 @@ if __name__ == '__main__':
     pcd.points = o3d.utility.Vector3dVector(pc_recon)
     o3d.visualization.draw_geometries([pcd, o3d.geometry.TriangleMesh.create_coordinate_frame(1)])
 
-    # # load data
-    # pcfile = 'data/' + 'points.pkl'
-    # normalfile = 'data/' + 'normals.pkl'
-    # pc = pickle.load(open(pcfile, 'rb'))
-    # normals = pickle.load(open(normalfile, 'rb'))
-    # pc = np.asarray(pc)
-    # normals = np.asarray(normals)
-    #
-    # truthfile = 'data/' + 'points_deformed.pkl'
-    # truth = pickle.load(open(truthfile, 'rb'))
-    # truth = np.asarray(truth)
-    #
-    # pc_recon = poisson_solver(pc, normals)
-    #
-    # pcd1 = o3d.geometry.PointCloud()
-    # pcd1.points = o3d.utility.Vector3dVector(pc_recon)
-    # pcd1.estimate_normals(o3d.geometry.KDTreeSearchParamKNN(10))
-    # pcd1.orient_normals_towards_camera_location()
-    # o3d.visualization.draw_geometries([pcd1, o3d.geometry.TriangleMesh.create_coordinate_frame(1)])
-    #
-    # pcd2 = o3d.geometry.PointCloud()
-    # pcd2.points = o3d.utility.Vector3dVector(truth)
-    # pcd2.estimate_normals(o3d.geometry.KDTreeSearchParamKNN(10))
-    # pcd2.orient_normals_towards_camera_location()
-    # o3d.visualization.draw_geometries([pcd2, o3d.geometry.TriangleMesh.create_coordinate_frame(2)])
-    #
-    # # generate image coordinates based on ground truth
-    # rtp_truth = cart2sph(truth)
-    # imagecoor = sph2fisheye(rtp_truth)
-    #
-    # grad_lnr = pretreat_normals(rtp_truth, normals)
-    # rtp = poisson_solver(rtp_truth, grad_lnr)
