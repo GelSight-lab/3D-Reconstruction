@@ -3,14 +3,8 @@ import numpy as np
 from sklearn.neighbors import KDTree
 import pickle
 
-def balls_on_sphere(pt, normals, balls):
-    # set up the initial spherical geometry with origin defined at camera
-    # a sketch of fisheye projection can be found on https://www.researchgate.net/figure/Projection-model-of-fisheye-camera-P-W-is-a-point-on-a-rectilinear-image-that-we-place_fig1_347632237
-
-    # kd = KDTree(pt)
-    # inds = kd.query_radius(sphere[0:3].reshape(1, -1), sphere[3])[0]
-    # dist = np.linalg.norm(pt[inds][:, 0:2] - sphere[0:2], axis=1)  # dist on xy plane
-    # pt[inds, 2] = sphere[2] - np.sqrt(sphere[3] ** 2 - dist.reshape(-1, ) ** 2)
+def place_balls(pt, normals, balls):
+    # place balls onto the geometry defined by the input pt.
 
     # place balls
     for ball in balls:
@@ -28,6 +22,25 @@ def balls_on_sphere(pt, normals, balls):
 
     return pt, np.asarray(pcd.normals)
 
+
+def indent_balls(pt, normals, balls):
+    # indent balls against the geometry defined by the inout pt.
+
+    # indent balls
+    for ball in balls:
+        kd = KDTree(pt)
+        inds = kd.query_radius(ball[0:3].reshape(1, -1), ball[3])[0]
+        rb = np.linalg.norm(ball[0:3])
+        cosda = np.dot(pt[inds], ball[0:3])/rb/np.linalg.norm(pt[inds], axis=1)
+        R = rb*cosda-np.sqrt(rb**2*cosda**2-(rb**2-ball[3]**2))
+        pt[inds] = R.reshape(-1, 1)*normals[inds]
+
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(pt)
+    pcd.estimate_normals(o3d.geometry.KDTreeSearchParamKNN(10))
+    pcd.orient_normals_towards_camera_location()
+
+    return pt, np.asarray(pcd.normals)
     # todo generate test data for curved surface reoncstruction
 #
 # depth = 2.5

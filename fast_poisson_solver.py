@@ -18,6 +18,8 @@ def source_term(gradx, grady, dx, dy):
     f[1:, :-1] += gyy
     return f
 
+# def diff_source():
+
 
 def poisson_solver(f, boundary, dx, dy):
     # Thanks to Dr. Ramesh Raskar for providing the original matlab code from which this is derived
