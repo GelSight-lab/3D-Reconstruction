@@ -1,19 +1,23 @@
 # -*- coding:utf-8 -*-
 """
 Author: Yuxiang Ma
+Date:   04/26/2022
+"""
+# -*- coding:utf-8 -*-
+"""
+Author: Yuxiang Ma
 Date:   04/04/2022
 """
-import numpy
-import scipy,scipy.fftpack
+# import cp
+# import scipy, scipy.fftpack
 import math
-import numba
+import cupy as cp
 
-# @numba.njit
 def source_term(gradx, grady, dx, dy):
     # Laplacian
     gyy = (grady[1:, :-1] - grady[:-1, :-1])/dx
     gxx = (gradx[:-1, 1:] - gradx[:-1, :-1])/dy
-    f = numpy.zeros(gradx.shape)
+    f = cp.zeros(gradx.shape)
 
     f[:-1, 1:] += gxx
     f[1:, :-1] += gyy
@@ -34,20 +38,20 @@ def poisson_solver(f, boundary, dx, dy):
 
     # Discrete Sine Transform
     dst_type = 1
-    tt = scipy.fftpack.dst(f, norm='ortho', type=dst_type)
-    fsin = scipy.fftpack.dst(tt.T, norm='ortho', type=dst_type).T
+    tt = cp.scipy.fftpack.dst(f, norm='ortho', type=dst_type)
+    fsin = cp.scipy.fftpack.dst(tt.T, norm='ortho', type=dst_type).T
 
     # Eigenvalues
-    (x, y) = numpy.meshgrid(range(1, f.shape[1] + 1), range(1, f.shape[0] + 1), copy=True)
-    # denom = (2 * numpy.cos(math.pi * x / (f.shape[1] + 2)) - 2)/dy**2 + (2 * numpy.cos(math.pi * y / (f.shape[0] + 2)) - 2)/dx**2
-    denom = (2 * numpy.cos(math.pi * x / (f.shape[1] + 2)) - 2) / dy ** 2 + (
-                2 * numpy.cos(math.pi * y / (f.shape[0] + 2)) - 2) / dx ** 2
+    (x, y) = cp.meshgrid(range(1, f.shape[1] + 1), range(1, f.shape[0] + 1), copy=True)
+    # denom = (2 * cp.cos(math.pi * x / (f.shape[1] + 2)) - 2)/dy**2 + (2 * cp.cos(math.pi * y / (f.shape[0] + 2)) - 2)/dx**2
+    denom = (2 * cp.cos(math.pi * x / (f.shape[1] + 2)) - 2) / dy ** 2 + (
+                2 * cp.cos(math.pi * y / (f.shape[0] + 2)) - 2) / dx ** 2
 
     f = fsin / denom
 
     # Inverse Discrete Sine Transform
-    tt = scipy.fftpack.idst(f, norm='ortho', type=1)
-    img_tt = scipy.fftpack.idst(tt.T, norm='ortho', type=1).T
+    tt = cp.scipy.fftpack.idst(f, norm='ortho', type=1)
+    img_tt = cp.scipy.fftpack.idst(tt.T, norm='ortho', type=1).T
 
     # New center + old boundary
     result = boundary

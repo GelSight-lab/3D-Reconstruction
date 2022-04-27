@@ -5,7 +5,7 @@ Date:   04/19/2022
 """
 import numpy as np
 import matplotlib.pyplot as plt
-
+import numba
 
 class Fisheye:
     # spherical coordinate(rtp) to image coordinate(imagecoor)
@@ -144,56 +144,56 @@ class Fisheye:
         return grad
 
 
-    def compare_gradients(self, Grad):
-        polar_frames = np.dstack(
-            (np.vstack(
-                (np.cos(self.rt_img[:, 1]), np.sin(self.rt_img[:, 1]))).T,
-             np.vstack((-np.sin(self.rt_img[:, 1]), np.cos(self.rt_img[:, 1]))).T))
-
-        Grad_lnr = np.sum((polar_frames.reshape(-1, 2) * Grad.reshape(-1, 1)).reshape(-1, 2, 2), axis=1)  # coordinate transformation
-
-        Grad_lnr[:, 0] = Grad_lnr[:, 0] * self.f
-
-        n = int(np.sqrt(Grad.shape[0]))
-        Gradt = Grad_lnr[:, 0].reshape(n, n)
-        Gradp = Grad_lnr[:, 1].reshape(n, n)
-        gradt = self.grad_lnr[:, 0].reshape(n, n)
-        gradp = self.grad_lnr[:, 1].reshape(n, n)
-
-        fig1, ax1 = plt.subplots()
-        pc1 = plt.pcolormesh(Gradt, shading='auto')
-        ax1.axis('equal')
-        fig1.colorbar(pc1)
-        plt.show()
-
-        fig2, ax2 = plt.subplots()
-        pc2 = plt.pcolormesh(Gradp, shading='auto')
-        ax2.axis('equal')
-        fig2.colorbar(pc2)
-        plt.show()
-
-        fig1, ax1 = plt.subplots()
-        pc1 = plt.pcolormesh(gradt, shading='auto')
-        ax1.axis('equal')
-        fig1.colorbar(pc1)
-        plt.show()
-
-        fig2, ax2 = plt.subplots()
-        pc1 = plt.pcolormesh(gradp, shading='auto')
-        ax2.axis('equal')
-        fig2.colorbar(pc1)
-        plt.show()
-
-        fig1, ax1 = plt.subplots()
-        pc1 = plt.pcolormesh(gradt-Gradt, shading='auto')
-        ax1.axis('equal')
-        fig1.colorbar(pc1)
-        plt.show()
-
-        fig2, ax2 = plt.subplots()
-        pc1 = plt.pcolormesh(gradp-Gradp, shading='auto')
-        ax2.axis('equal')
-        fig2.colorbar(pc1)
-        plt.show()
-
-        return Grad_lnr
+    # def compare_gradients(self, Grad):
+    #     polar_frames = np.dstack(
+    #         (np.vstack(
+    #             (np.cos(self.rt_img[:, 1]), np.sin(self.rt_img[:, 1]))).T,
+    #          np.vstack((-np.sin(self.rt_img[:, 1]), np.cos(self.rt_img[:, 1]))).T))
+    #
+    #     Grad_lnr = np.sum((polar_frames.reshape(-1, 2) * Grad.reshape(-1, 1)).reshape(-1, 2, 2), axis=1)  # coordinate transformation
+    #
+    #     Grad_lnr[:, 0] = Grad_lnr[:, 0] * self.f
+    #
+    #     n = int(np.sqrt(Grad.shape[0]))
+    #     Gradt = Grad_lnr[:, 0].reshape(n, n)
+    #     Gradp = Grad_lnr[:, 1].reshape(n, n)
+    #     gradt = self.grad_lnr[:, 0].reshape(n, n)
+    #     gradp = self.grad_lnr[:, 1].reshape(n, n)
+    #
+    #     fig1, ax1 = plt.subplots()
+    #     pc1 = plt.pcolormesh(Gradt, shading='auto')
+    #     ax1.axis('equal')
+    #     fig1.colorbar(pc1)
+    #     plt.show()
+    #
+    #     fig2, ax2 = plt.subplots()
+    #     pc2 = plt.pcolormesh(Gradp, shading='auto')
+    #     ax2.axis('equal')
+    #     fig2.colorbar(pc2)
+    #     plt.show()
+    #
+    #     fig1, ax1 = plt.subplots()
+    #     pc1 = plt.pcolormesh(gradt, shading='auto')
+    #     ax1.axis('equal')
+    #     fig1.colorbar(pc1)
+    #     plt.show()
+    #
+    #     fig2, ax2 = plt.subplots()
+    #     pc1 = plt.pcolormesh(gradp, shading='auto')
+    #     ax2.axis('equal')
+    #     fig2.colorbar(pc1)
+    #     plt.show()
+    #
+    #     fig1, ax1 = plt.subplots()
+    #     pc1 = plt.pcolormesh(gradt-Gradt, shading='auto')
+    #     ax1.axis('equal')
+    #     fig1.colorbar(pc1)
+    #     plt.show()
+    #
+    #     fig2, ax2 = plt.subplots()
+    #     pc1 = plt.pcolormesh(gradp-Gradp, shading='auto')
+    #     ax2.axis('equal')
+    #     fig2.colorbar(pc1)
+    #     plt.show()
+    #
+    #     return Grad_lnr
