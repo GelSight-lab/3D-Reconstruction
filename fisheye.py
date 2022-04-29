@@ -21,9 +21,8 @@ class Fisheye:
     def __init__(self, x_img, y_img, f, proj="equidistant"):
         self.x_img = x_img
         self.y_img = y_img
-        self.xy_img = np.hstack((
-            np.tile(x_img, y_img.size).reshape(-1, 1),
-            np.repeat(y_img, x_img.size).reshape(-1, 1) ))  # (x, y) of all points and iterate y first
+        x, y = np.meshgrid(self.x_img, self.y_img)
+        self.xy_img = np.hstack((x.reshape(-1, 1), y.reshape(-1, 1)))  # (x, y) of all points and iterate y first
         self.proj = proj
         self.f = f
         self.p = self.projs.index(proj)
