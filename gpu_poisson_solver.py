@@ -5,11 +5,11 @@ Date:   04/04/2022
 """
 import numpy as np
 import jax.numpy as jnp
+import jax
 import scipy,scipy.fftpack
 import math
 import numba
 
-# @numba.njit
 def source_term(gradx, grady, dx, dy):
     # Laplacian
     gyy = (grady[1:, :-1] - grady[:-1, :-1])/dx
@@ -35,20 +35,24 @@ def poisson_solver(f, boundary, dx, dy):
 
     # Discrete Sine Transform
     dst_type = 1
-    fw = jnp.fft.fftn(f, norm='ortho')
+    fw = jax.scipy.fft.dctn(f, norm='ortho')
+    # fw = jnp.fft.fft2(f, norm='ortho')
     # fsin = scipy.fftpack.dst(tt.T, norm='ortho', type=dst_type).T
 
     # Eigenvalues
-    (x, y) = jnp.meshgrid(jnp.arange(1, f.shape[1] + 1), jnp.arange(1, f.shape[0] + 1), copy=True)
+    x = jnp.arange(1, f.shape[1] + 1)
+    y = jnp.arange(1, f.shape[0] + 1)
+    (x, y) = jnp.meshgrid(x, y, copy=True)
+
     # denom = (2 * jnp.cos(math.pi * x / (f.shape[1] + 2)) - 2)/dy**2 + (2 * jnp.cos(math.pi * y / (f.shape[0] + 2)) - 2)/dx**2
     denom = (2 * jnp.cos(math.pi * x / (f.shape[1] + 2)) - 2) / dy ** 2 + (
                 2 * jnp.cos(math.pi * y / (f.shape[0] + 2)) - 2) / dx ** 2
 
     f = fw / denom
-
     # Inverse Discrete Sine Transform
-    img_tt = jnp.fft.ifftn(f, norm='ortho')
+    # img_tt = jax.scipy.fft.dct(f, norm='ortho', type=3)
     # img_tt = scipy.fftpack.idst(tt.T, norm='ortho', type=1).T
+    img_tt = jnp.fft.ifft2(f, norm='ortho')
 
     # New center + old boundary
     result = boundary

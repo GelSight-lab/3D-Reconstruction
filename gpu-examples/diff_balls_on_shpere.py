@@ -20,7 +20,7 @@ if __name__ == '__main__':
     ###
     # initialize mesh on image plane and camera setting
     start = time.time()
-    n = 201
+    n = 128
     X = jnp.linspace(-1 / 2, 1 / 2, n)
     Y = jnp.linspace(-1 / 2, 1 / 2, n)
     dx = 1 / (n - 1)
