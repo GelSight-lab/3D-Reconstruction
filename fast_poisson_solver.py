@@ -33,9 +33,8 @@ def poisson_solver(f, boundary, dx, dy):
     f = f[1:-1, 1:-1] - f_bp/dx**2
 
     # Discrete Sine Transform
-    dst_type = 1
-    tt = scipy.fftpack.dst(f, norm='ortho', type=dst_type)
-    fsin = scipy.fftpack.dst(tt.T, norm='ortho', type=dst_type).T
+    # tt = scipy.fftpack.dst(f, norm='ortho', type=dst_type)
+    fw = scipy.fft.dctn(f, norm='ortho')
 
     # Eigenvalues
     (x, y) = numpy.meshgrid(range(1, f.shape[1] + 1), range(1, f.shape[0] + 1), copy=True)
@@ -43,11 +42,11 @@ def poisson_solver(f, boundary, dx, dy):
     denom = (2 * numpy.cos(math.pi * x / (f.shape[1] + 2)) - 2) / dy ** 2 + (
                 2 * numpy.cos(math.pi * y / (f.shape[0] + 2)) - 2) / dx ** 2
 
-    f = fsin / denom
+    f = fw / denom
 
     # Inverse Discrete Sine Transform
-    tt = scipy.fftpack.idst(f, norm='ortho', type=1)
-    img_tt = scipy.fftpack.idst(tt.T, norm='ortho', type=1).T
+    # tt = scipy.fftpack.idst(f, norm='ortho', type=1)
+    img_tt = scipy.fft.idctn(f, norm='ortho')
 
     # New center + old boundary
     result = boundary
