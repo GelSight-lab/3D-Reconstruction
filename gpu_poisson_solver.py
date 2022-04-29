@@ -1,26 +1,23 @@
 # -*- coding:utf-8 -*-
 """
 Author: Yuxiang Ma
-Date:   04/26/2022
-"""
-# -*- coding:utf-8 -*-
-"""
-Author: Yuxiang Ma
 Date:   04/04/2022
 """
-# import cp
-# import scipy, scipy.fftpack
+import numpy as np
+import jax.numpy as jnp
+import scipy,scipy.fftpack
 import math
-import cupy as cp
+import numba
 
+# @numba.njit
 def source_term(gradx, grady, dx, dy):
     # Laplacian
     gyy = (grady[1:, :-1] - grady[:-1, :-1])/dx
     gxx = (gradx[:-1, 1:] - gradx[:-1, :-1])/dy
-    f = cp.zeros(gradx.shape)
+    f = jnp.zeros(gradx.shape)
 
-    f[:-1, 1:] += gxx
-    f[1:, :-1] += gyy
+    f = f.at[:-1, 1:].add(gxx)
+    f = f.at[1:, :-1].add(gyy)
     return f
 
 # def diff_source():
@@ -38,23 +35,23 @@ def poisson_solver(f, boundary, dx, dy):
 
     # Discrete Sine Transform
     dst_type = 1
-    tt = cp.scipy.fftpack.dst(f, norm='ortho', type=dst_type)
-    fsin = cp.scipy.fftpack.dst(tt.T, norm='ortho', type=dst_type).T
+    fw = jnp.fft.fftn(f, norm='ortho')
+    # fsin = scipy.fftpack.dst(tt.T, norm='ortho', type=dst_type).T
 
     # Eigenvalues
-    (x, y) = cp.meshgrid(range(1, f.shape[1] + 1), range(1, f.shape[0] + 1), copy=True)
-    # denom = (2 * cp.cos(math.pi * x / (f.shape[1] + 2)) - 2)/dy**2 + (2 * cp.cos(math.pi * y / (f.shape[0] + 2)) - 2)/dx**2
-    denom = (2 * cp.cos(math.pi * x / (f.shape[1] + 2)) - 2) / dy ** 2 + (
-                2 * cp.cos(math.pi * y / (f.shape[0] + 2)) - 2) / dx ** 2
+    (x, y) = jnp.meshgrid(jnp.arange(1, f.shape[1] + 1), jnp.arange(1, f.shape[0] + 1), copy=True)
+    # denom = (2 * jnp.cos(math.pi * x / (f.shape[1] + 2)) - 2)/dy**2 + (2 * jnp.cos(math.pi * y / (f.shape[0] + 2)) - 2)/dx**2
+    denom = (2 * jnp.cos(math.pi * x / (f.shape[1] + 2)) - 2) / dy ** 2 + (
+                2 * jnp.cos(math.pi * y / (f.shape[0] + 2)) - 2) / dx ** 2
 
-    f = fsin / denom
+    f = fw / denom
 
     # Inverse Discrete Sine Transform
-    tt = cp.scipy.fftpack.idst(f, norm='ortho', type=1)
-    img_tt = cp.scipy.fftpack.idst(tt.T, norm='ortho', type=1).T
+    img_tt = jnp.fft.ifftn(f, norm='ortho')
+    # img_tt = scipy.fftpack.idst(tt.T, norm='ortho', type=1).T
 
     # New center + old boundary
     result = boundary
-    result[1:-1, 1:-1] += img_tt
+    result = result.at[1:-1, 1:-1].add(img_tt)
 
     return result

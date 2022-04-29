@@ -46,8 +46,8 @@ def poisson_solver(f, boundary, dx, dy):
     f = fsin / denom
 
     # Inverse Discrete Sine Transform
-    tt = scipy.fftpack.idst(f, norm='ortho', type=1)
-    img_tt = scipy.fftpack.idst(tt.T, norm='ortho', type=1).T
+    tt = scipy.fftpack.idst(f, norm='ortho', type=dst_type)
+    img_tt = scipy.fftpack.idst(tt.T, norm='ortho', type=dst_type).T
 
     # New center + old boundary
     result = boundary
