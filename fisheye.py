@@ -98,13 +98,13 @@ class Fisheye:
         # transform normals to spherical coordinates
         # local spherical frameworks (sphframes shape 3*3*n)
         sph_frames = torch.stack(
-            [torch.cat(
+            [torch.stack(
                 [torch.sin(self.tp[:, 0]) * torch.cos(self.tp[:, 1]), torch.sin(self.tp[:, 0]) * torch.sin(self.tp[:, 1]),
                  torch.cos(self.tp[:, 0])], 1),
-             torch.cat(
+             torch.stack(
                  [torch.cos(self.tp[:, 0]) * torch.cos(self.tp[:, 1]), torch.cos(self.tp[:, 0]) * torch.sin(self.tp[:, 1]),
                   -torch.sin(self.tp[:, 0])], 1),
-             torch.cat([-torch.sin(self.tp[:, 1]), torch.cos(self.tp[:, 1]), torch.zeros(self.tp.shape[0])], 1)])
+             torch.stack([-torch.sin(self.tp[:, 1]), torch.cos(self.tp[:, 1]), torch.zeros(self.tp.shape[0])], 1)], 2)
         norm_sph = torch.sum((sph_frames.view(-1, 3) * normals.view(-1, 1)).view(-1, 3, 3), axis=1)
 
         # turn norms into gradient with respect to (rho, phi) on image plane
@@ -116,8 +116,8 @@ class Fisheye:
 
         # On image plane, transform gradient of ln(r) from polar to cartesian
         polar_frames = torch.stack(
-            [torch.cat([torch.cos(self.rt_img[:, 1]), -torch.sin(self.rt_img[:, 1])], 1).T,
-             torch.cat([torch.sin(self.rt_img[:, 1]), torch.cos(self.rt_img[:, 1])], 1).T])
+            [torch.stack([torch.cos(self.rt_img[:, 1]), -torch.sin(self.rt_img[:, 1])], 1),
+             torch.stack([torch.sin(self.rt_img[:, 1]), torch.cos(self.rt_img[:, 1])], 1)], 2)
 
         grad = torch.sum((polar_frames.view(-1, 2)*grad_lnr.view(-1, 1)).view(-1, 2, 2), axis=1)  # coordinate transformation
 

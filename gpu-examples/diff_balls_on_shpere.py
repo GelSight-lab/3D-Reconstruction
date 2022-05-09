@@ -36,19 +36,19 @@ if __name__ == '__main__':
     rtp = torch.cat([torch.ones((n**2)).view(-1, 1)*sphere, fshy.tp], 1)
     xyz = fshy.sph2cart(rtp)
 
-    balls0 = torch.tensor([[0, 0, 8, 5]])
+    balls0 = torch.tensor([[0., 0., 8., 5.]])
     # balls = np.array([[0, 0.8, 13,1.5],
     #                   [-1, -1, 13.5, 1],
     #                   [3, 0, 12.5, 0.8]])
 
-    balls = torch.tensor([[0, 0.8, 13.5, 1.5],
-                         [-1, -1, 13, 1],
-                         [3, 0, 12.5, 0.8]])
+    balls = torch.tensor([[0., 0.8, 13.5, 1.5],
+                         [-1., -1, 13., 1.],
+                         [3., 0., 12.5, 0.8]])
 
     normals = xyz/sphere
     pt = xyz
     pt, normals0 = place_balls(pt, normals, balls0)
-    pt0 = pt.copy()
+    pt0 = pt.clone()
 
     pt, normals = indent_balls(pt, normals, balls)
     true = torch.linalg.norm(pt.reshape(n, n, 3), axis=2)  # ground truth

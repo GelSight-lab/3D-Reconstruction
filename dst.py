@@ -16,10 +16,10 @@ def dst1(x):
     """
     x_shape = x.shape
     N = x_shape[-1]
-    x = torch.cat([torch.zeros(1, N), x.view(-1, N)])
+    # x = torch.cat([torch.zeros(1, N), x.view(-1, N)])
 
     # return torch.rfft(torch.cat([x, -x.flip([1])[:, 1:-1]], dim=1), 1).imag[:, :, 0].view(*x_shape)/2
-    return torch.rfft(torch.cat([x, -x.flip([1])[:, 1:-1]], dim=1), 1).imag[:, :, 0].view(*x_shape) / 2
+    return torch.fft.rfft(torch.cat([torch.zeros(N, 1), x, torch.zeros(N, 1), -x.flip([1])], 1), 1).imag.view(*x_shape) / 2
 
 def idst1(X):
     """
