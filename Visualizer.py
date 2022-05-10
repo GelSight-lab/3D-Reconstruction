@@ -23,7 +23,7 @@ class Visualizer:
         ax1.axis('equal')
         ax1.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
         fig1.colorbar(pc1)
-        fig1.suptitle('Colormap of x-gradient{} '.format(title), fontsize=15)
+        fig1.suptitle('Colormap of x-gradient {} '.format(title), fontsize=15)
         plt.show()
 
         fig2, ax2 = plt.subplots()
@@ -31,7 +31,7 @@ class Visualizer:
         ax2.axis('equal')
         ax2.set(xlim=(-0.5, 0.5), ylim=(-0.5, 0.5))
         fig2.colorbar(pc2)
-        fig2.suptitle('Colormap of y-gradient{} '.format(title), fontsize=15)
+        fig2.suptitle('Colormap of y-gradient {} '.format(title), fontsize=15)
         plt.show()
 
     def plot_geometry(self, r, title='distance'):
