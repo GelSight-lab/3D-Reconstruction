@@ -1,20 +1,16 @@
 # 3D-Reconstruction
 
-Poisson reconstruction for any curved surfaces and fisheye cameras
+Poisson reconstruction for any curved surfaces and fisheye cameras. The repo contains a few examples with synthetic data, however it works well on experimental data. Examples with experimental data will be published in a few days.
+
 
 ## Features
 
 - Reconstruction on any surface based on fisheye camera projection
-- Reconstruction using difference image
-- FFT-baed Fast prossion solver
-- 
+- Reconstruction using subtracted poisson equation
+- DST-based Fast prossion solver
 
 ## To do
-- [ ] proper visualization funcs
-- [ ] Reconstruction using difference image
 - [ ] GPU version
-- [ ] User-defined fisheye (or other camera) projection
-- [ ] Find the optimal boundary condition to solve with (optional)
-- [ ] Contact region detecting to decrease the of the problem
+- [ ] Contact region detecting to decrease the size of the problem
 - [ ] Error analysis
-- [ ] Document (why does not gradient transformation from spherical coordinate to polar coordinate have a sin(\theta) coordinate?)
+- [ ] User-defined fisheye (or other camera) projection
