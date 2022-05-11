@@ -67,7 +67,6 @@ if __name__ == '__main__':
     df = f - f0
 
     # set up boundary condition
-    # todo: solve the displacement caused by boundary condition
     boundary = np.ones((n, n))*0
 
     # solution is log(U) rather than U
@@ -115,6 +114,6 @@ if __name__ == '__main__':
 
     # 3d visualization
     pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(np.vstack((pt-np.array([6, 1, 0]), pc_recon+np.array([6, 1, 0]))))
+    pcd.points = o3d.utility.Vector3dVector(np.vstack((np.array([6, 1, 0]), pc_recon+np.array([6, 1, 0]))))
     o3d.visualization.draw_geometries([pcd, o3d.geometry.TriangleMesh.create_coordinate_frame(1)], width=1280,
                                       height=720)

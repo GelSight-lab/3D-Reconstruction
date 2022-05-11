@@ -34,29 +34,25 @@ def poisson_solver(f, boundary, dx, dy):
     f = f[1:-1, 1:-1] - f_bp/dx**2
 
     # Discrete Sine Transform
-    dst_type = 1
-    ftt = dst1(f)
-    fw = dst1(ftt.T).T
-    # fw = torch.fft.fft2(f, norm='ortho')
-    # fsin = scipy.fftpack.dst(tt.T, norm='ortho', type=dst_type).T
+    fw =  dst1(f)
+    fsin = dst1(fw.T).T
 
     # Eigenvalues
     x = torch.arange(1, f.shape[1] + 1)
     y = torch.arange(1, f.shape[0] + 1)
-    (x, y) = torch.meshgrid(x, y, copy=True)
+    (x, y) = torch.meshgrid(x, y, indexing='xy')
 
     # denom = (2 * torch.cos(math.pi * x / (f.shape[1] + 2)) - 2)/dy**2 + (2 * torch.cos(math.pi * y / (f.shape[0] + 2)) - 2)/dx**2
     denom = (2 * torch.cos(math.pi * x / (f.shape[1] + 2)) - 2) / dy ** 2 + (
                 2 * torch.cos(math.pi * y / (f.shape[0] + 2)) - 2) / dx ** 2
 
-    f = fw / denom
+    f = fsin / denom
     # Inverse Discrete Sine Transform
     tt = idst1(f)
     img_tt = idst1(tt.T).T
-    # img_tt = torch.fft.ifft2(f, norm='ortho')
 
     # New center + old boundary
     result = boundary
-    result = result.at[1:-1, 1:-1].add(img_tt)
+    result[1:-1, 1:-1] += img_tt
 
     return result

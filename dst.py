@@ -15,11 +15,11 @@ def dst1(x):
     :return: the DST-I of the signal over the last dimension
     """
     x_shape = x.shape
-    N = x_shape[-1]
+    N = x_shape[0]
     # x = torch.cat([torch.zeros(1, N), x.view(-1, N)])
 
     # return torch.rfft(torch.cat([x, -x.flip([1])[:, 1:-1]], dim=1), 1).imag[:, :, 0].view(*x_shape)/2
-    return torch.fft.rfft(torch.cat([torch.zeros(N, 1), x, torch.zeros(N, 1), -x.flip([1])], 1), 1).imag.view(*x_shape) / 2
+    return torch.fft.rfft(torch.cat([torch.zeros(N, 1), x, torch.zeros(N, 1), -x.flip([1])], 1), dim=-1).imag[:, 1:-1].view(*x_shape)
 
 def idst1(X):
     """

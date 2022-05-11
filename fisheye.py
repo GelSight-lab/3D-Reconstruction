@@ -21,7 +21,7 @@ class Fisheye:
     def __init__(self, x_img, y_img, f, proj="equidistant"):
         self.x_img = x_img
         self.y_img = y_img
-        x, y = torch.meshgrid(x_img, y_img)
+        x, y = torch.meshgrid(x_img, y_img, indexing='xy')
         self.xy_img = torch.cat([x.reshape(-1, 1), y.reshape(-1, 1)], 1)  # (x, y) of all points and iterate y first
         self.proj = proj
         self.f = f
@@ -108,12 +108,12 @@ class Fisheye:
         norm_sph = torch.sum((sph_frames.view(-1, 3) * normals.view(-1, 1)).view(-1, 3, 3), axis=1)
 
         # turn norms into gradient with respect to (rho, phi) on image plane
-        grad_lnr = - norm_sph[:, 1:] / norm_sph[:, 0].view(-1, 1)    # normalization
-        grad_lnr[:, 1] = grad_lnr[:, 1] * torch.cos(self.tp[:, 0])           # derivatives with regard to (theta, phi)
-        self.grad_lnr  = grad_lnr
+        grad_lnr = - norm_sph[:, 1:] / norm_sph[:, 0].view(-1, 1)           # normalization
+        grad_lnr[:, 1] = grad_lnr[:, 1] * torch.sin(self.tp[:, 0])          # derivatives with regard to (theta, phi)
+        # self.grad_lnr  = grad_lnr
 
-        grad_lnr = self.gradient2image(grad_lnr)                        # transform to image plane
-
+        grad_lnr = self.gradient2image(grad_lnr)                            # transform to image plane
+        grad_lnr[:, 1] = grad_lnr[:, 1] / self.rt_img[:, 0]                 # gradient with respect to polar coordinate
         # On image plane, transform gradient of ln(r) from polar to cartesian
         polar_frames = torch.stack(
             [torch.stack([torch.cos(self.rt_img[:, 1]), -torch.sin(self.rt_img[:, 1])], 1),

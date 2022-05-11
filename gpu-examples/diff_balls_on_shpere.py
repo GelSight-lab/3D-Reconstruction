@@ -22,7 +22,7 @@ if __name__ == '__main__':
     ###
     # initialize mesh on image plane and camera setting
     start = time.time()
-    n = 128
+    n = 256
     X = torch.linspace(-1 / 2, 1 / 2, n)
     Y = torch.linspace(-1 / 2, 1 / 2, n)
     dx = 1 / (n - 1)
@@ -41,7 +41,8 @@ if __name__ == '__main__':
     #                   [-1, -1, 13.5, 1],
     #                   [3, 0, 12.5, 0.8]])
 
-    balls = torch.tensor([[0., 0.8, 13.5, 1.5],
+    # balls = torch.tensor([[0., 0.8, 13.5, 6.]])
+    balls = torch.tensor([[0., 0.8, 13.5, 2.],
                          [-1., -1, 13., 1.],
                          [3., 0., 12.5, 0.8]])
 
@@ -86,8 +87,11 @@ if __name__ == '__main__':
     time_solu2 = time.time()
 
     print("Elapsed time for reconstruction=%s" % (time_solu2 - time_solu))
+
     print(U.min())
+    print(true.min())
     print(U.max())
+    print(true.max())
 
     pc_recon = fshy.sph2cart(torch.hstack((U.reshape(-1, 1), fshy.tp)))
     ###
@@ -99,10 +103,11 @@ if __name__ == '__main__':
 
     vis.plot_colormap(U, title='distance')
     vis.plot_colormap(f0, title='initial source')
+    vis.plot_colormap(df, title='subtracted source')
 
     gradx = grad[:, 0].reshape(n, n)
     grady = grad[:, 1].reshape(n, n)
-    vis.plot_gradients(gradx, grady, title='ground truth')
+    vis.plot_gradients(gradx, grady, title='input')
 
     Gradx = gradx
     Grady = grady
@@ -115,6 +120,6 @@ if __name__ == '__main__':
 
     # 3d visualization
     pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(torch.vstack((pt-torch.array([6, 1, 0]), pc_recon+torch.array([6, 1, 0]))))
+    pcd.points = o3d.utility.Vector3dVector(torch.vstack((pt-torch.tensor([6, 1, 0]), pc_recon+torch.tensor([6, 1, 0]))))
     o3d.visualization.draw_geometries([pcd, o3d.geometry.TriangleMesh.create_coordinate_frame(1)], width=1280,
                                       height=720)
