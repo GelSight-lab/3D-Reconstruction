@@ -4,7 +4,6 @@ Torch Implementation
 Author: Yuxiang Ma
 Date:   04/19/2022
 """
-# import numpy as np
 import torch
 
 class Fisheye:

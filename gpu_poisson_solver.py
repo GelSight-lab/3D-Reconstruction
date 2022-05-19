@@ -6,7 +6,6 @@ Date:   04/04/2022
 import numpy as np
 
 import torch
-import scipy,scipy.fftpack
 import math
 from dst import dst1, idst1
 
@@ -25,9 +24,6 @@ def source_term(gradx, grady, dx, dy):
 def poisson_solver(f, boundary, dx, dy):
     # Thanks to Dr. Ramesh Raskar for providing the original matlab code from which this is derived
     # Dr. Raskar's version is available here: http://web.media.mit.edu/~raskar/photo/code.pdf
-
-    # Boundary image
-    # boundary[1:-1, 1:-1] = 0
 
     # Subtract boundary contribution
     f_bp = -4*boundary[1:-1, 1:-1] + boundary[1:-1, 2:] + boundary[1:-1, 0:-2] + boundary[2:,1:-1] + boundary[0:-2,1:-1]

@@ -1,7 +1,6 @@
 # -*- coding:utf-8 -*-
 """
-Author: Yux
-iang Ma
+Author: Yuxiang Ma
 Date:   04/20/2022
 """
 # This script is an 3D reconstruction case of several balls on a sphere with simulated data
@@ -22,13 +21,9 @@ if __name__ == '__main__':
     ###
     # initialize mesh on image plane and camera setting
     start = time.time()
-    n = 256*2
-    # X = torch.linspace(-1 / 2, 1 / 2, n)
-    # Y = torch.linspace(-1 / 2, 1 / 2, n)
-    # dx = 1 / (n - 1)
-    # dy = 1 / (n - 1)
+    n = 256
 
-    fshy = Fisheye(n, n, 0.5)
+    fshy = Fisheye(n, n, 2)
     dx = fshy.dx
     dy = fshy.dy
     X = fshy.x_img
@@ -45,10 +40,10 @@ if __name__ == '__main__':
     #                   [-1, -1, 13.5, 1],
     #                   [3, 0, 12.5, 0.8]])
 
-    balls = torch.tensor([[1., 1.8, 12.5, .5]])
-    # balls = torch.tensor([[0., 0.8, 13.5, 2.],
-    #                      [-1., -1, 13., 1.],
-    #                      [3., 0., 12.5, 0.8]])
+    # balls = torch.tensor([[1., 1.8, 12.5, .5]])
+    balls = torch.tensor([[0., 0.8, 13.5, 2.],
+                         [-1., -1, 13., 1.],
+                         [3., 0., 12.5, 0.8]])
 
     normals = xyz/sphere
     pt = xyz
@@ -57,10 +52,10 @@ if __name__ == '__main__':
 
     pt, normals = indent_balls(pt, normals, balls)
     true = torch.linalg.norm(pt.reshape(n, n, 3), axis=2)  # ground truth
-    fig1, ax1 = plt.subplots()
-    pc1 = plt.imshow(normals[:, 1].view(n,n))
-    fig1.colorbar(pc1)
-    plt.show()
+    # fig1, ax1 = plt.subplots()
+    # pc1 = plt.imshow(normals[:, 1].view(n,n))
+    # fig1.colorbar(pc1)
+    # plt.show()
 
     true0 = torch.linalg.norm(pt0.reshape(n, n, 3), axis=2)
 
@@ -71,15 +66,10 @@ if __name__ == '__main__':
     # compute right hand side
     grad0 = fshy.convert_norms(normals0)
     grad  = fshy.convert_norms(normals)
-
-    # fig, ax = plt.subplots()
-    # pc = ax.pcolormesh(normals[:, 0].view[n,n,1], shading='auto')
-    # ax.axis('equal')
-    # fig.colorbar(pc)
-    # plt.show()
-
-    f0 = source_term(grad0[:, 0].reshape(n, n), grad0[:, 1].reshape(n, n), dx, dy)
-    f = source_term(grad[:, 0].reshape(n, n), grad[:, 1].reshape(n, n), dx, dy)
+    grad0x, grad0y = grad0[:, 0].reshape(n, n), grad0[:, 1].reshape(n, n)
+    gradx, grady = grad[:, 0].reshape(n, n), grad[:, 1].reshape(n, n)
+    f0 = source_term(grad0x, grad0y, dx, dy)
+    f = source_term(gradx, grady, dx, dy)
 
     df = f - f0
 
@@ -119,8 +109,8 @@ if __name__ == '__main__':
     vis.plot_colormap(f0, title='initial source')
     vis.plot_colormap(df, title='subtracted source')
 
-    gradx = grad[:, 0].reshape(n, n)
-    grady = grad[:, 1].reshape(n, n)
+    # gradx = grad[:, 0].reshape(n, n)
+    # grady = grad[:, 1].reshape(n, n)
     vis.plot_gradients(gradx, grady, title='input')
 
     Gradx = gradx
@@ -129,8 +119,6 @@ if __name__ == '__main__':
     Gradx[1:-1, 1:-1] = (logtrue[1:-1, 2:] - logtrue[1:-1, :-2]) / 2 / dx
     Grady[1:-1, 1:-1] = (logtrue[2:, 1:-1] - logtrue[:-2, 1:-1]) / 2 / dy
     vis.plot_gradients(Gradx, Grady, title='ground truth')
-
-    # fshy.compare_gradients(torch.hstack((Gradx.reshape(-1, 1), Grady.reshape(-1, 1))))
 
     # 3d visualization
     pcd = o3d.geometry.PointCloud()
