@@ -8,9 +8,9 @@ Poisson reconstruction for any curved surfaces and fisheye cameras. The repo con
 - Reconstruction on any surface based on fisheye camera projection
 - Reconstruction using subtracted poisson equation
 - DST-based Fast prossion solver
-
+- GPU version based on torch
 ## To do
-- [ ] GPU version
+- [ ] Establish initial geometry correspondacne
 - [ ] Contact region detecting to decrease the size of the problem
 - [ ] Error analysis
 - [ ] User-defined fisheye (or other camera) projection
