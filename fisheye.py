@@ -18,17 +18,40 @@ class Fisheye:
     # thoby, PTGui...
     projs = ["equidistant", "stereographic", "orthographic", "equisolid"]
 
-    def __init__(self, x_img, y_img, f, proj="equidistant"):
-        self.x_img = x_img
-        self.y_img = y_img
-        x, y = torch.meshgrid(x_img, y_img, indexing='xy')
-        self.xy_img = torch.cat([x.reshape(-1, 1), y.reshape(-1, 1)], 1)  # (x, y) of all points and iterate y first
+    def __init__(self, n, m, f=1, proj="equidistant", K=None):
+        #! Initialize camera with intrinsic parameters of [K]. If K is not specified, one can specify focal length as a scalar
+        #  with initial length f = 1
         self.proj = proj
-        self.f = f
         self.p = self.projs.index(proj)
+        self.x_img = torch.linspace(-1, 1, n)
+        self.y_img = torch.linspace(-1, 1, m)
+        self.dx = 2/(n-1)
+        self.dy = 2/(m-1)
+        
+        if K is None:          # default setting or only focal length
+            self.f = f
+            self.K = K
+            self.optocenter = torch.zeros(1, 2)
+
+        else:                  # initialize with intrinsic parameter matrix
+            self.f = f*2/torch.pi         # normalize focal length, express pixel size with focal length
+            self.K = K
+            self.x_img = self.x_img/self.dx
+            self.y_img = self.y_img/self.dy
+            self.dx = 1 / K[0, 0]
+            self.dy = 1 / K[1, 1]
+            self.optocenter = torch.as_tensor([K[0, 2]-n/2, K[1, 2]-m/2])
+            # self.optocenter = torch.as_tensor([0,0])
+            self.x_img = (self.x_img - self.optocenter[0])*self.dx
+            self.y_img = (self.y_img - self.optocenter[1])*self.dy
+
+        x, y = torch.meshgrid(self.x_img, self.y_img, indexing='xy')
+        self.xy_img = torch.cat([x.reshape(-1, 1), y.reshape(-1, 1)], 1)  # (x, y) of all points and iterate y first
 
         self.cart2polar()
         self.polar2sph()
+
+
 
     def cart2polar(self):
         # ! On image plane, converting cartesian coordinates to polar coordinates.

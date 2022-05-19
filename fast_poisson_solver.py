@@ -6,9 +6,7 @@ Date:   04/04/2022
 import numpy
 import scipy,scipy.fftpack
 import math
-import numba
 
-# @numba.njit
 def source_term(gradx, grady, dx, dy):
     # Laplacian
     gyy = (grady[1:, :-1] - grady[:-1, :-1])/dx

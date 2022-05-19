@@ -16,19 +16,23 @@ from fisheye import Fisheye
 from Visualizer import Visualizer
 from dst import dst1, idst1, LinearDST
 import time
-
+import matplotlib.pyplot as plt
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     ###
     # initialize mesh on image plane and camera setting
     start = time.time()
-    n = 256
-    X = torch.linspace(-1 / 2, 1 / 2, n)
-    Y = torch.linspace(-1 / 2, 1 / 2, n)
-    dx = 1 / (n - 1)
-    dy = 1 / (n - 1)
+    n = 256*2
+    # X = torch.linspace(-1 / 2, 1 / 2, n)
+    # Y = torch.linspace(-1 / 2, 1 / 2, n)
+    # dx = 1 / (n - 1)
+    # dy = 1 / (n - 1)
 
-    fshy = Fisheye(X, Y, 1)
+    fshy = Fisheye(n, n, 0.5)
+    dx = fshy.dx
+    dy = fshy.dy
+    X = fshy.x_img
+    Y = fshy.y_img
 
     ###
     # simu data with balls_on_sphere
@@ -41,10 +45,10 @@ if __name__ == '__main__':
     #                   [-1, -1, 13.5, 1],
     #                   [3, 0, 12.5, 0.8]])
 
-    # balls = torch.tensor([[0., 0.8, 13.5, 6.]])
-    balls = torch.tensor([[0., 0.8, 13.5, 2.],
-                         [-1., -1, 13., 1.],
-                         [3., 0., 12.5, 0.8]])
+    balls = torch.tensor([[1., 1.8, 12.5, .5]])
+    # balls = torch.tensor([[0., 0.8, 13.5, 2.],
+    #                      [-1., -1, 13., 1.],
+    #                      [3., 0., 12.5, 0.8]])
 
     normals = xyz/sphere
     pt = xyz
@@ -53,6 +57,10 @@ if __name__ == '__main__':
 
     pt, normals = indent_balls(pt, normals, balls)
     true = torch.linalg.norm(pt.reshape(n, n, 3), axis=2)  # ground truth
+    fig1, ax1 = plt.subplots()
+    pc1 = plt.imshow(normals[:, 1].view(n,n))
+    fig1.colorbar(pc1)
+    plt.show()
 
     true0 = torch.linalg.norm(pt0.reshape(n, n, 3), axis=2)
 
@@ -63,6 +71,12 @@ if __name__ == '__main__':
     # compute right hand side
     grad0 = fshy.convert_norms(normals0)
     grad  = fshy.convert_norms(normals)
+
+    # fig, ax = plt.subplots()
+    # pc = ax.pcolormesh(normals[:, 0].view[n,n,1], shading='auto')
+    # ax.axis('equal')
+    # fig.colorbar(pc)
+    # plt.show()
 
     f0 = source_term(grad0[:, 0].reshape(n, n), grad0[:, 1].reshape(n, n), dx, dy)
     f = source_term(grad[:, 0].reshape(n, n), grad[:, 1].reshape(n, n), dx, dy)
@@ -81,7 +95,7 @@ if __name__ == '__main__':
     # U = torch.exp(dlnU + lnU0)
     U = torch.exp(dlnU) * true0
     time_solu = time.time()
-    print("Elapsed time for reconstruction=%s"%(time_solu-time_sim))
+    print("Elapsed time for reconstruction (include compiling)=%s"%(time_solu-time_sim))
 
     dlnU = poisson_solver(df, boundary, dx, dy)
     time_solu2 = time.time()
