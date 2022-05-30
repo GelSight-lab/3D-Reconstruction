@@ -50,8 +50,6 @@ class Fisheye:
         self.cart2polar()
         self.polar2sph()
 
-
-
     def cart2polar(self):
         # ! On image plane, converting cartesian coordinates to polar coordinates.
         r_img = torch.sqrt(self.xy_img[:, 0] ** 2 + self.xy_img[:, 1] ** 2)
@@ -159,7 +157,7 @@ class Fisheye:
                 exit(-1)
         return grad
 
-
+    #
     # def compare_gradients(self, Grad):
     #     polar_frames = torch.dstack(
     #         (torch.vstack(

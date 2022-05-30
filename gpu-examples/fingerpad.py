@@ -11,7 +11,7 @@ import open3d as o3d
 import pickle
 
 from fast_poisson_solver import poisson_solver, source_term
-from data_generator import balls_on_sphere
+from data_generator import place_balls
 from fisheye import Fisheye
 
 # Press the green button in the gutter to run the script.
