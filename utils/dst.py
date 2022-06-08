@@ -16,9 +16,7 @@ def dst1(x):
     """
     x_shape = x.shape
     N = x_shape[0]
-    # x = torch.cat([torch.zeros(1, N), x.view(-1, N)])
 
-    # return torch.rfft(torch.cat([x, -x.flip([1])[:, 1:-1]], dim=1), 1).imag[:, :, 0].view(*x_shape)/2
     return torch.fft.rfft(torch.cat([torch.zeros(N, 1), x, torch.zeros(N, 1), -x.flip([1])], 1), dim=-1).imag[:, 1:-1].view(*x_shape)
 
 def idst1(X):
@@ -34,9 +32,11 @@ def idst1(X):
 
 def dst(x, norm=None):
     """
-    Discrete Sine Transform, Type I (a.k.a. the DST)
+    Discrete Sine Transform, Type II (a.k.a. the DST)
     For the meaning of the parameter `norm`, see:
-    https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dst.html
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.fft.dst.html
+    The principle of this algorithm comes from Makhoul's dct algorithm, see:
+    https://chasethedevil.github.io/post/discrete_sine_transform_fft/
     :param x: the input signal
     :param norm: the normalization, None or 'ortho'
     :return: the DST-II of the signal over the last dimension
@@ -45,21 +45,20 @@ def dst(x, norm=None):
     N = x_shape[-1]
     x = x.contiguous().view(-1, N)
 
-    v = torch.cat([x[:, ::2], x[:, 1::2].flip([1])], dim=1)
+    v = torch.cat([x[:, ::2], -x[:, 1::2].flip([1])], dim=1)
 
-    Vc = torch.rfft(v, 1, onesided=False)
-
-    k = - torch.arange(N, dtype=x.dtype, device=x.device)[None, :] * np.pi / (2 * N)
+    Vc = torch.fft.fft(v, dim=-1)
+    Vc = torch.roll(Vc, -1, -1)                       # offset the last dimension of Vc by -1
+    k = - torch.arange(1, N+1, dtype=x.dtype, device=x.device)[None, :] * np.pi / (2 * N)
     W_r = torch.cos(k)
     W_i = torch.sin(k)
 
-    V = Vc[:, :, 0] * W_r - Vc[:, :, 1] * W_i
+    V = - Vc.real * W_i - Vc.imag * W_r
 
     if norm == 'ortho':
-        V[:, 0] /= np.sqrt(N) * 2
-        V[:, 1:] /= np.sqrt(N / 2) * 2
+        V[:, 0] /= np.sqrt(2)
 
-    V = 2 * V.view(*x_shape)
+    V = 2 * V.view(*x_shape)            # consistent with definition of scipy
 
     return V
 
@@ -69,7 +68,9 @@ def idst(X, norm=None):
     The inverse to DST-II, which is a scaled Discrete Sine Transform, Type III
     Our definition of idst is that idst(dst(x)) == x
     For the meaning of the parameter `norm`, see:
-    https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dst.html
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.fft.dst.html
+    The principle of this algorithm comes from Makhoul's dct algorithm, see:
+    https://chasethedevil.github.io/post/discrete_sine_transform_fft/
     :param X: the input signal
     :param norm: the normalization, None or 'ortho'
     :return: the inverse DST-II of the signal over the last dimension
@@ -81,25 +82,26 @@ def idst(X, norm=None):
     X_v = X.contiguous().view(-1, x_shape[-1]) / 2
 
     if norm == 'ortho':
-        X_v[:, 0] *= np.sqrt(N) * 2
-        X_v[:, 1:] *= np.sqrt(N / 2) * 2
+        X_v[:, 0] *= np.sqrt(2)
 
-    k = torch.arange(x_shape[-1], dtype=X.dtype, device=X.device)[None, :] * np.pi / (2 * N)
+    k = torch.arange(1, N+1, dtype=X.dtype, device=X.device)[None, :] * np.pi / (2 * N)
     W_r = torch.cos(k)
     W_i = torch.sin(k)
 
-    V_t_r = X_v
-    V_t_i = torch.cat([X_v[:, :1] * 0, -X_v.flip([1])[:, :-1]], dim=1)
+    V_t_r = torch.cat([-X_v[:, :1], -X_v.flip([1])[:, :-1]], dim=1)
+    # V_t_r = -torch.roll(X_v, 1, -1)
+    V_t_i = X_v
 
     V_r = V_t_r * W_r - V_t_i * W_i
     V_i = V_t_r * W_i + V_t_i * W_r
 
-    V = torch.cat([V_r.unsqueeze(2), V_i.unsqueeze(2)], dim=2)
+    V = - V_r - 1j*V_i
+    V = torch.roll(V, 1, -1)
 
-    v = torch.irfft(V, 1, onesided=False)
+    v = torch.fft.ifft(V, dim=-1)
     x = v.new_zeros(v.shape)
     x[:, ::2] += v[:, :N - (N // 2)]
-    x[:, 1::2] += v.flip([1])[:, :N // 2]
+    x[:, 1::2] += -v.flip([1])[:, :N // 2]
 
     return x.view(*x_shape)
 
@@ -108,7 +110,7 @@ def dst_2d(x, norm=None):
     """
     2-dimentional Discrete Sine Transform, Type II (a.k.a. the DST)
     For the meaning of the parameter `norm`, see:
-    https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dst.html
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.fft.dst.html
     :param x: the input signal
     :param norm: the normalization, None or 'ortho'
     :return: the DST-II of the signal over the last 2 dimensions
@@ -123,7 +125,7 @@ def idst_2d(X, norm=None):
     The inverse to 2D DST-II, which is a scaled Discrete Sine Transform, Type III
     Our definition of idst is that idst_2d(dst_2d(x)) == x
     For the meaning of the parameter `norm`, see:
-    https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dst.html
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.fft.dst.html
     :param X: the input signal
     :param norm: the normalization, None or 'ortho'
     :return: the DST-II of the signal over the last 2 dimensions
@@ -137,7 +139,7 @@ def dst_3d(x, norm=None):
     """
     3-dimentional Discrete Sine Transform, Type II (a.k.a. the DST)
     For the meaning of the parameter `norm`, see:
-    https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dst.html
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.fft.dst.html
     :param x: the input signal
     :param norm: the normalization, None or 'ortho'
     :return: the DST-II of the signal over the last 3 dimensions
@@ -153,7 +155,7 @@ def idst_3d(X, norm=None):
     The inverse to 3D DST-II, which is a scaled Discrete Sine Transform, Type III
     Our definition of idst is that idst_3d(dst_3d(x)) == x
     For the meaning of the parameter `norm`, see:
-    https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.fftpack.dst.html
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.fft.dst.html
     :param X: the input signal
     :param norm: the normalization, None or 'ortho'
     :return: the DST-II of the signal over the last 3 dimensions
@@ -200,6 +202,7 @@ def apply_linear_2d(x, linear_layer):
     X2 = linear_layer(X1.transpose(-1, -2))
     return X2.transpose(-1, -2)
 
+
 def apply_linear_3d(x, linear_layer):
     """Can be used with a LinearDST layer to do a 3D DST.
     :param x: the input signal
@@ -210,6 +213,7 @@ def apply_linear_3d(x, linear_layer):
     X2 = linear_layer(X1.transpose(-1, -2))
     X3 = linear_layer(X2.transpose(-1, -3))
     return X3.transpose(-1, -3).transpose(-1, -2)
+
 
 if __name__ == '__main__':
     x = torch.Tensor(1000,4096)

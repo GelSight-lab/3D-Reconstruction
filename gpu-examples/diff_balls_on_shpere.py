@@ -13,9 +13,8 @@ from gpu_poisson_solver import poisson_solver, source_term
 from data_generator import place_balls, indent_balls
 from fisheye import Fisheye
 from Visualizer import Visualizer
-from dst import dst1, idst1, LinearDST
 import time
-import matplotlib.pyplot as plt
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     ###

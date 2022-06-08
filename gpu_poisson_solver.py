@@ -3,11 +3,10 @@
 Author: Yuxiang Ma
 Date:   04/04/2022
 """
-import numpy as np
 
 import torch
 import math
-from dst import dst1, idst1
+from utils.dst import dst1, idst1, dst, idst
 
 def source_term(gradx, grady, dx, dy):
     # Laplacian
@@ -30,7 +29,7 @@ def poisson_solver(f, boundary, dx, dy):
     f = f[1:-1, 1:-1] - f_bp/dx**2
 
     # Discrete Sine Transform
-    fw =  dst1(f)
+    fw =  dst(f)
     fsin = dst1(fw.T).T
 
     # Eigenvalues
