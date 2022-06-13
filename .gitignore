@@ -4,3 +4,4 @@ __pycache__/data_generator.cpython-39.pyc
 __pycache__/data_generator.cpython-39.pyc
 __pycache__/fast_poisson_solver.cpython-39.pyc
 *.pyc
+test_dst.py

@@ -2,6 +2,12 @@
 """
 Author: Yuxiang Ma
 Date:   05/05/2022
+
+The algorithm was developed by applying Makhoul's fast cosine transform algorithm to sine transform. A blog (see below)
+talking about discrete sine transform was consulted.
+
+Ref: Makhoul, John. "A fast cosine transform in one and two dimensions." IEEE Transactions on Acoustics, Speech, and Signal Processing 28.1 (1980): 27-34.
+     https://chasethedevil.github.io/post/discrete_sine_transform_fft/
 """
 import numpy as np
 import torch
@@ -88,8 +94,7 @@ def idst(X, norm=None):
     W_r = torch.cos(k)
     W_i = torch.sin(k)
 
-    V_t_r = torch.cat([-X_v[:, :1], -X_v.flip([1])[:, :-1]], dim=1)
-    # V_t_r = -torch.roll(X_v, 1, -1)
+    V_t_r = torch.cat([-X_v.flip([1])[:, 1:], X_v[:, 0:1]*0], dim=1)
     V_t_i = X_v
 
     V_r = V_t_r * W_r - V_t_i * W_i
@@ -103,6 +108,7 @@ def idst(X, norm=None):
     x[:, ::2] += v[:, :N - (N // 2)]
     x[:, 1::2] += -v.flip([1])[:, :N // 2]
 
+    x = x.real          # ignore imaginary part
     return x.view(*x_shape)
 
 

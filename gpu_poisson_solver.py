@@ -6,7 +6,7 @@ Date:   04/04/2022
 
 import torch
 import math
-from utils.dst import dst1, idst1, dst, idst
+from utils.dst import dst_2d, idst_2d
 
 def source_term(gradx, grady, dx, dy):
     # Laplacian
@@ -29,22 +29,20 @@ def poisson_solver(f, boundary, dx, dy):
     f = f[1:-1, 1:-1] - f_bp/dx**2
 
     # Discrete Sine Transform
-    fw =  dst(f)
-    fsin = dst1(fw.T).T
+    fsin = dst_2d(f)
 
     # Eigenvalues
     x = torch.arange(1, f.shape[1] + 1)
     y = torch.arange(1, f.shape[0] + 1)
     (x, y) = torch.meshgrid(x, y, indexing='xy')
 
-    # denom = (2 * torch.cos(math.pi * x / (f.shape[1] + 2)) - 2)/dy**2 + (2 * torch.cos(math.pi * y / (f.shape[0] + 2)) - 2)/dx**2
-    denom = (2 * torch.cos(math.pi * x / (f.shape[1] + 2)) - 2) / dy ** 2 + (
-                2 * torch.cos(math.pi * y / (f.shape[0] + 2)) - 2) / dx ** 2
+    denom = (2 * torch.cos(math.pi * x / (f.shape[1] + 1)) - 2)/dy**2 + (2 * torch.cos(math.pi * y / (f.shape[0] + 1)) - 2)/dx**2
+    # denom = (2 * torch.cos(math.pi * x / (f.shape[1] + 2)) - 2) / dy ** 2 + (
+    #             2 * torch.cos(math.pi * y / (f.shape[0] + 2)) - 2) / dx ** 2
 
     f = fsin / denom
     # Inverse Discrete Sine Transform
-    tt = idst1(f)
-    img_tt = idst1(tt.T).T
+    img_tt = idst_2d(f)
 
     # New center + old boundary
     result = boundary
