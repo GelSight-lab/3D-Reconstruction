@@ -11,6 +11,5 @@ Poisson reconstruction for any curved surfaces and fisheye cameras. The repo con
 - GPU version based on torch
 ## To do
 - [ ] Establish initial geometry correspondacne
-- [ ] Contact region detecting to decrease the size of the problem
 - [ ] Error analysis
 - [ ] User-defined fisheye (or other camera) projection
